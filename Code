@@ -1,0 +1,125 @@
+# -*- coding: utf-8 -*-
+"""
+Align It Right: Needleman-Wunsch in Python 🧬
+"""
+
+def needleman_wunsch(seq1, seq2, match_score, mismatch_score, gap_score):
+    """
+  Performs Needleman-Wunsch alignment with traceback directions.
+
+  Args:
+      seq1 (str): The first sequence.
+      seq2 (str): The second sequence.
+      match_score (int): Score for a match.
+      mismatch_score (int): Score for a mismatch.
+      gap_score (int): Score for a gap.
+
+  Returns:
+      tuple: A tuple containing the optimal alignment score,
+             aligned sequence 1, aligned sequence 2,
+             scoring matrix, and traceback matrix.
+  """
+    # Initialize scoring and traceback matrices
+    n = len(seq1) + 1
+    m = len(seq2) + 1
+    matrix = [[0 for _ in range(m)] for _ in range(n)]
+    traceback = [["" for _ in range(m)] for _ in range(n)]
+
+    # Fill the first row and column with gap penalties
+    for i in range(1, n):
+        matrix[i][0] = i * gap_score
+        traceback[i][0] = "↑"  # Indicates a gap in seq2 (up)
+    for j in range(1, m):
+        matrix[0][j] = j * gap_score
+        traceback[0][j] = "←"  # Indicates a gap in seq1 (left)
+    traceback[0][0] = ""  # Starting point has no direction
+
+    # Fill the scoring matrix and track directions
+    for i in range(1, n):
+        for j in range(1, m):
+            match = matrix[i - 1][j - 1] + (match_score if seq1[i - 1] == seq2[j - 1] else mismatch_score)
+            delete = matrix[i - 1][j] + gap_score
+            insert = matrix[i][j - 1] + gap_score
+
+            # Find the maximum score and update the matrix
+            max_score = max(match, delete, insert)
+            matrix[i][j] = max_score
+
+            # Set traceback direction based on the score
+            if max_score == match:
+                traceback[i][j] = "↖"  # Diagonal
+            elif max_score == delete:
+                traceback[i][j] = "↑"  # Up
+            else:
+                traceback[i][j] = "←"  # Left
+
+    # Perform traceback to get the optimal alignment
+    aligned_seq1, aligned_seq2 = "", ""
+    i, j = n - 1, m - 1
+
+    while i > 0 or j > 0:
+        if traceback[i][j] == "↖":
+            aligned_seq1 = seq1[i - 1] + aligned_seq1
+            aligned_seq2 = seq2[j - 1] + aligned_seq2
+            i -= 1
+            j -= 1
+        elif traceback[i][j] == "↑":
+            aligned_seq1 = seq1[i - 1] + aligned_seq1
+            aligned_seq2 = "-" + aligned_seq2
+            i -= 1
+        elif traceback[i][j] == "←":
+            aligned_seq1 = "-" + aligned_seq1
+            aligned_seq2 = seq2[j - 1] + aligned_seq2
+            j -= 1
+
+    optimal_score = matrix[-1][-1]
+    return optimal_score, aligned_seq1, aligned_seq2, matrix, traceback
+
+
+def print_matrix_with_labels(matrix, traceback, seq1, seq2):
+    """
+  Prints the scoring matrix with sequence labels and traceback directions.
+
+  Args:
+      matrix (list of lists): The scoring matrix.
+      traceback (list of lists): The traceback matrix.
+      seq1 (str): The first sequence.
+      seq2 (str): The second sequence.
+  """
+    # Print column headers for seq2 with gap
+    print("      " + "   ".join(f"{char}" for char in "-" + seq2))
+    print("    " + "  ".join(f"{matrix[0][j]:3}" for j in range(len(matrix[0]))))
+
+    # Print each row with seq1 labels, scores, and traceback arrows
+    for i in range(len(matrix)):
+        if i == 0:
+            row_label = "-"  # Gap label for the first row
+        else:
+            row_label = seq1[i - 1]  # Sequence character label for seq1
+
+        row_str = f"{row_label} "  # Row label
+        for j in range(len(matrix[i])):
+            # Print both score and traceback arrow in each cell
+            score = matrix[i][j]
+            direction = traceback[i][j]
+            row_str += f"{score:3}{direction:2} "
+        print(row_str)
+
+
+# Main code
+if __name__ == "__main__":
+    seq1 = input("Enter the first sequence: ")
+    seq2 = input("Enter the second sequence: ")
+    match_score = int(input("Enter the match score: "))
+    mismatch_score = int(input("Enter the mismatch score: "))
+    gap_score = int(input("Enter the gap score: "))
+
+    optimal_score, aligned_seq1, aligned_seq2, matrix, traceback = needleman_wunsch(seq1, seq2, match_score,
+                                                                                    mismatch_score, gap_score)
+
+    print("\nOptimal Alignment Score:", optimal_score)
+    print("Aligned Sequence 1:", aligned_seq1)
+    print("Aligned Sequence 2:", aligned_seq2)
+
+    print("\nScoring Matrix with Traceback:")
+    print_matrix_with_labels(matrix, traceback, seq1, seq2)
